@@ -1,6 +1,7 @@
 package discogs
 
 import (
+	"net/url"
 	"strconv"
 )
 
@@ -17,6 +18,9 @@ type CollectionService interface {
 	CollectionItemsByRelease(username string, releaseID int) (*CollectionItems, error)
 	// Retrieve metadata about a folder in a user’s collection.
 	Folder(username string, folderID int) (*Folder, error)
+	// Change the value of a notes field (including media/sleeve condition) on a particular instance.
+	// fieldID 0 = Media Condition, 1 = Sleeve Condition, 3+ = Notes fields.
+	EditFieldsInstance(username string, folderID, releaseID, instanceID int, fieldID FieldID, value string) error
 }
 
 type collectionService struct {
@@ -132,4 +136,25 @@ func (s *collectionService) CollectionItemsByRelease(username string, releaseID 
 	var items *CollectionItems
 	err := request(s.url+"/"+username+"/collection/releases/"+strconv.Itoa(releaseID), nil, &items)
 	return items, err
+}
+
+type FieldID int
+
+const (
+	MediaConditionField  FieldID = 1
+	SleeveConditionField FieldID = 2
+	NotesField           FieldID = 3
+)
+
+func (s *collectionService) EditFieldsInstance(username string, folderID, releaseID, instanceID int, fieldID FieldID, value string) error {
+	params := url.Values{}
+	params.Set("value", value)
+	err := requestWithJSONBody(
+		"POST",
+		s.url+"/"+username+"/collection/folders/"+strconv.Itoa(folderID)+"/releases/"+strconv.Itoa(releaseID)+"/instances/"+strconv.Itoa(instanceID)+"/fields/"+strconv.Itoa(int(fieldID)),
+		params,
+		map[string]string{"value": value},
+		nil,
+	)
+	return err
 }

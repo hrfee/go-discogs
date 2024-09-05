@@ -48,6 +48,31 @@ func CollectionServer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func CollectionEditServer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	switch r.URL.Path {
+	case "/users/" + testUsername + "/collection/folders/1/releases/10191384/instances/313879623/fields/3":
+		var body map[string]string
+		err := json.NewDecoder(r.Body).Decode(&body)
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		_, ok := body["value"]
+		if !ok {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 func TestCollectionServiceFolder(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(CollectionServer))
 	defer ts.Close()
@@ -170,5 +195,17 @@ func TestCollectionServiceCollectionItemsByReleaseErrors(t *testing.T) {
 				t.Fatalf("err got=%s; want=%s", err, tc.err)
 			}
 		})
+	}
+}
+func TestCollectionServiceEditFieldsInstance(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(CollectionEditServer))
+	defer ts.Close()
+
+	d := initDiscogsClient(t, &Options{URL: ts.URL})
+
+	err := d.EditFieldsInstance(testUsername, 1, 10191384, 313879623, NotesField, "test-value")
+
+	if err != nil {
+		t.Fatalf("failed to edit field for instance: %s", err)
 	}
 }

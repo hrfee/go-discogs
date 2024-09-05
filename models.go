@@ -189,8 +189,8 @@ type ReleaseSource struct {
 
 // Notes ...
 type Notes struct {
-	FieldID int    `json:"field_id"`
-	Value   string `json:"value"`
+	FieldID FieldID `json:"field_id"`
+	Value   string  `json:"value"`
 }
 
 // Pagination ...

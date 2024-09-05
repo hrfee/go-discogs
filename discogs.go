@@ -1,8 +1,10 @@
 package discogs
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -88,11 +90,28 @@ func currency(c string) (string, error) {
 }
 
 func request(path string, params url.Values, resp interface{}) error {
-	r, err := http.NewRequest("GET", path+"?"+params.Encode(), nil)
+	return requestWithMethod("GET", path, params, resp)
+}
+
+func requestWithMethod(method string, path string, params url.Values, resp interface{}) error {
+	return verboseRequest(method, path, params, nil, resp)
+}
+
+func requestWithJSONBody(method string, path string, params url.Values, body interface{}, resp interface{}) error {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	return verboseRequest(method, path, params, bytes.NewBuffer(bodyBytes), resp)
+}
+
+func verboseRequest(method string, path string, params url.Values, requestBody io.Reader, resp interface{}) error {
+	r, err := http.NewRequest(method, path+"?"+params.Encode(), requestBody)
 	if err != nil {
 		return err
 	}
 	r.Header = *header
+	r.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
 	response, err := client.Do(r)
@@ -103,6 +122,8 @@ func request(path string, params url.Values, resp interface{}) error {
 
 	if response.StatusCode != http.StatusOK {
 		switch response.StatusCode {
+		case http.StatusNoContent:
+			return nil
 		case http.StatusUnauthorized:
 			return ErrUnauthorized
 		case http.StatusTooManyRequests:

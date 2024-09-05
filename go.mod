@@ -1,4 +1,4 @@
-module github.com/irlndts/go-discogs
+module github.com/hrfee/go-discogs
 
 go 1.17
 
